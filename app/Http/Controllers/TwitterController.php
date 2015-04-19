@@ -1,15 +1,16 @@
 <?php namespace App\Http\Controllers;
 
-// require "vendor/autoload.php";
+use Cookie;
+use Input;
+use Response;
 
 use Abraham\TwitterOAuth\TwitterOAuth;
 
+use App\History;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
 use Illuminate\Http\Request;
-use Input;
-use Response;
 
 class TwitterController extends Controller {
 
@@ -20,19 +21,36 @@ class TwitterController extends Controller {
 	 */
 	public function index()
 	{
-		//
+		$city = Input::get('city');
 		$lat = Input::get('lat');
 		$lng = Input::get('lng');
 		$radius = '50km';
 
-		$connection = new TwitterOAuth(env('CONSUMER_KEY'), env('CONSUMER_SECRET'), env('ACCESS_TOKEN'), env('ACCESS_TOKEN_SECRET'));
-		$connection->setTimeouts(10, 15);
+		$cookie = Cookie::get('laravel_session');
+		$history = History::whereRaw("cookie = ? AND city = ? AND timediff(created_at, now()) > ? ", 
+			array($cookie, $city, '-01:00:00'))->get();
+		if (0 < $history->count()) {
+			$cache = true;
+			$content = $history->first()->cache;
+			$tweets = unserialize($content);
+		}
+		else {
+			$cache = false;
+			$connection = new TwitterOAuth(env('CONSUMER_KEY'), env('CONSUMER_SECRET'), env('ACCESS_TOKEN'), env('ACCESS_TOKEN_SECRET'));
+			$connection->setTimeouts(10, 15);
 
-		$tweets = $connection->get("search/tweets", array("q" => "geocode:{$lat},{$lng},{$radius}", "f" => "realtime", "src" => "typd"));
+			$tweets = $connection->get("search/tweets", array("q" => "geocode:{$lat},{$lng},{$radius}", "f" => "realtime", "src" => "typd"));
+			// Add to Histories
+			$history = new History();
+			$history->city = $city;
+			$history->cookie = $cookie;
+			$history->cache = serialize($tweets);
+			$history->save();
+		}
 
 		$response = array(
 			'status' => 'success',
-			'msg' => 'test',
+			'msg' => $cache ? 'cache' : 'realtime',
 			'data' => $tweets
 		);
 

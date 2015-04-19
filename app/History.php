@@ -16,5 +16,5 @@ class History extends Model {
          *
          * @var array
          */
-        protected $fillable = ['cookie', 'city'];
+        protected $fillable = ['cookie', 'city', 'cache'];
 }
