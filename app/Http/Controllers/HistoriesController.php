@@ -1,9 +1,8 @@
 <?php namespace App\Http\Controllers;
 
 use Cookie;
-use Crypt;
 use Input;
-use Redirect;
+use Response;
 
 use App\History;
 use App\Http\Requests;
@@ -20,12 +19,14 @@ class HistoriesController extends Controller {
 	 */
 	public function index()
 	{
-		// $cookie = isset($_COOKIE['laravel_session']) ? Crypt::decrypt($_COOKIE['laravel_session']) : null;
 		$cookie = Cookie::get('laravel_session');
 		$histories = isset($cookie) ? History::where('cookie', '=', $cookie)->get() : null;
+		$response = array(
+			'status' => 'success',
+			'data' => $histories
+		);
 
-		// return Response::json($histories);
-		return view('histories.index', compact('histories'));
+		return Response::json( $response );
 	}
 
 	/**

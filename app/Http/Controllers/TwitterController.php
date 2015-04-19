@@ -7,6 +7,7 @@ use Response;
 use Abraham\TwitterOAuth\TwitterOAuth;
 
 use App\History;
+use App\HistoryCache;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
@@ -31,8 +32,9 @@ class TwitterController extends Controller {
 			array($cookie, $city, '-01:00:00'))->get();
 		if (0 < $history->count()) {
 			$cache = true;
-			$content = $history->first()->cache;
-			$tweets = unserialize($content);
+			$history_id = $history->first()->id;
+			$history_caches = HistoryCache::where('history_id', '=', $history_id)->get();
+			$tweets = unserialize($history_caches->first()->cache);
 		}
 		else {
 			$cache = false;
@@ -44,8 +46,12 @@ class TwitterController extends Controller {
 			$history = new History();
 			$history->city = $city;
 			$history->cookie = $cookie;
-			$history->cache = serialize($tweets);
 			$history->save();
+
+			$history_cache = new HistoryCache();
+			$history_cache->history_id = $history->id;
+			$history_cache->cache = serialize($tweets);
+			$history_cache->save();
 		}
 
 		$response = array(

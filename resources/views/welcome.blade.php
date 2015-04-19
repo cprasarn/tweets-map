@@ -22,6 +22,11 @@
         padding: 5px;
         border: 1px solid #999;
       }
+      div.row {
+        border:1px solid #ccc;
+        padding:5px;
+        width:240px;
+      }
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
@@ -47,7 +52,7 @@ function initialize() {
   addMarker(bangkok, 'Bangkok, Thailand');
 
   // Show tweets
-  showTwitters('bangkok', lat, lng, '50km', false);
+  showTwitters('bangkok', lat, lng, '50km');
 }
 
 // Add a marker to the map and push to the array.
@@ -92,7 +97,7 @@ function deleteMarkers() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
-function showTwitters(city, lat, lng, radius, track) {
+function showTwitters(city, lat, lng, radius) {
   $.ajax({
     type: 'GET',
     dataType: 'text',
@@ -100,8 +105,7 @@ function showTwitters(city, lat, lng, radius, track) {
       city: city,
       lat: lat,
       lng: lng,
-      radius: radius,
-      track: track
+      radius: radius
     },
     url: "http://localhost:8000/twitters",
     error: function (jqXHR, textStatus, errorThrown) {
@@ -129,8 +133,19 @@ function showTwitters(city, lat, lng, radius, track) {
   });
 }
 
-function showMap() {
-  var city = $('input[name="city"]').val();
+function showMap(city) {
+  city = (city) ? city : $('input[name="city"]').val();
+  if (! city) city = 'bangkok';
+
+  $('#map-canvas').show();
+  $('#map-canvas').css('display', 'block');
+
+  $('#panel').show();
+  $('#panel').css('display', 'block');
+
+  $('#history').hide();
+  $('#history').css('display', 'none');
+
   $.ajax({
     url: "http://maps.google.com/maps/api/geocode/json?sensor=false&address=" + city,
     cache: true,
@@ -146,7 +161,40 @@ function showMap() {
     };
     map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
     addMarker(city_marker, city);
-    showTwitters(city, lat, lng, '50km', true);
+    showTwitters(city, lat, lng, '50km');
+  });
+}
+
+function showHistories() {
+  $.ajax({
+    type: 'GET',
+    dataType: 'text',
+    data: {},
+    url: "http://localhost:8000/histories",
+    error: function (jqXHR, textStatus, errorThrown) {
+      console.log(jqXHR);
+    },
+    success: function (msg) {
+      var response = JSON.parse(msg);
+      console.log({r: response});
+
+      var html = '<div class="row">';
+      html += '<a href="#" onclick="showMap();">Go Back to Tweets</a>';
+      html += '</div>';
+
+      var list = response.data;
+      for (var i=0; i < list.length; i++) {
+          html += '<div class="row">';
+          html += '<a href="#" onclick="showMap(\'' + list[i].city + '\')">' + list[i].city + '</a>';
+          html += '</div>';
+      }
+
+      $('#map-canvas').hide();
+      $('#panel').hide();
+      $('#history').show();
+      $('#history').css('display', 'block');
+      $('#history').html(html);
+    }
   });
 }
     </script>
@@ -165,9 +213,6 @@ function showMap() {
       <input onclick="showMap();" type=button value="Search">
       <input onclick="showHistories();" type=button value="History">
     </div>
-
-    <div class="history">
-       @yield('history')
-    </div>
+    <div id="history"></div>
   </body>
 </html>
