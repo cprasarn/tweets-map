@@ -47,7 +47,7 @@ function initialize() {
   addMarker(bangkok, 'Bangkok, Thailand');
 
   // Show tweets
-  showTwitters(lat, lng, '50km');
+  showTwitters('bangkok', lat, lng, '50km', false);
 }
 
 // Add a marker to the map and push to the array.
@@ -92,14 +92,16 @@ function deleteMarkers() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
-function showTwitters(lat, lng, radius) {
+function showTwitters(city, lat, lng, radius, track) {
   $.ajax({
     type: 'GET',
     dataType: 'text',
     data: {
+      city: city,
       lat: lat,
       lng: lng,
-      radius: radius
+      radius: radius,
+      track: track
     },
     url: "http://localhost:8000/twitters",
     error: function (jqXHR, textStatus, errorThrown) {
@@ -144,7 +146,7 @@ function showMap() {
     };
     map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
     addMarker(city_marker, city);
-    showTwitters(lat, lng, '50km');
+    showTwitters(city, lat, lng, '50km', true);
   });
 }
     </script>

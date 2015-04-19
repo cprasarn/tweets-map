@@ -17,6 +17,7 @@ class CreateHistoriesTable extends Migration {
 			$table->increments('id');
 			$table->string('cookie');
 			$table->string('city');
+			$table->largeBlob('cache');
 			$table->timestamps();
 		});
 	}
