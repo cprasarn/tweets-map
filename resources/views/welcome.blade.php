@@ -38,20 +38,54 @@ var map;
 var markers = [];
 
 function initialize() {
+  var mapOptions = {
+    zoom: 11
+  };
+  map = new google.maps.Map(document.getElementById('map-canvas'),
+      mapOptions);
+
+  // Try HTML5 geolocation
+  if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      var lat = position.coords.latitude;
+      var lng = position.coords.longitude;
+      var pos = new google.maps.LatLng(lat, lng);
+
+      map.setCenter(pos);
+      getCityByLatLng(lat, lng);
+    }, function() {
+      handleNoGeolocation(true);
+    });
+  } else {
+    // Browser doesn't support Geolocation
+    handleNoGeolocation(false);
+  }
+}
+
+function handleNoGeolocation(errorFlag) {
+  if (errorFlag) {
+    var content = 'Error: The Geolocation service failed.';
+  } else {
+    var content = 'Error: Your browser doesn\'t support geolocation.';
+  }
+
+  getDefaultLocation();
+}
+
+function getDefaultLocation() {
   var lat = 13.7563309;
   var lng = 100.5017651;
   var bangkok = new google.maps.LatLng(lat, lng);
-  var mapOptions = {
-    zoom: 12,
-    center: bangkok,
-    mapTypeId: google.maps.MapTypeId.ROADMAP
+
+  var options = {
+    map: map,
+    position: bangkok,
+    content: content
   };
-  map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 
-  // Adds a marker at the center of the map.
-  addMarker(bangkok, 'Bangkok, Thailand');
+  var infowindow = new google.maps.InfoWindow(options);
+  map.setCenter(options.position);
 
-  // Show tweets
   showTwitters('bangkok', lat, lng, '50km');
 }
 
@@ -97,6 +131,33 @@ function deleteMarkers() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
+function getCityByLatLng(lat, lng) {
+    $.ajax({
+        type: 'GET',
+        dataType: "json",
+        url: "http://maps.googleapis.com/maps/api/geocode/json?latlng="+lat+","+lng+"&sensor=false",
+        data: {},
+        success: function(data) {
+            $.each( data['results'],function(i, val) {
+                $.each( val['address_components'],function(i, val) {
+                    if (val['types'][0] == "administrative_area_level_1") {
+                        if (val['long_name']!="") {
+                            city = val['long_name'];
+                        }
+                        else {
+                            city = 'unknown';
+                        }
+                    }
+                });
+            });
+            console.log('Success: ' + city);
+
+            showTwitters(city, lat, lng, '50km');
+        },
+        error: function () { console.log('error'); }
+    });
+}
+
 function showTwitters(city, lat, lng, radius) {
   $.ajax({
     type: 'GET',
@@ -107,7 +168,7 @@ function showTwitters(city, lat, lng, radius) {
       lng: lng,
       radius: radius
     },
-    url: "http://localhost:8000/twitters",
+    url: "http://only2c.co/index.php/twitters",
     error: function (jqXHR, textStatus, errorThrown) {
       console.log(jqXHR);
     },
@@ -155,7 +216,7 @@ function showMap(city) {
     var lng = city_location['lng'];
     var city_marker = new google.maps.LatLng(lat, lng);
     var mapOptions = {
-      zoom: 12,
+      zoom: 11,
       center: city_marker,
       mapTypeId: google.maps.MapTypeId.ROADMAP
     };
@@ -170,7 +231,7 @@ function showHistories() {
     type: 'GET',
     dataType: 'text',
     data: {},
-    url: "http://localhost:8000/histories",
+    url: "http://only2c.co/index.php/histories",
     error: function (jqXHR, textStatus, errorThrown) {
       console.log(jqXHR);
     },
